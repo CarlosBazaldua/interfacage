@@ -5,13 +5,14 @@
 
 ThreadLvgl threadLvgl(30);
 
-DigitalOut led1(D2); //Led blanche
-DigitalOut led2(D3); //Led rouge
+DigitalOut led1(D2); //R
+DigitalOut led2(D3); //W
 DigitalIn capteur(A0);
 DigitalOut ledcarte1(LED1);
-
-
+Timer t;
+int compteur ; 
 Ticker vitesseTicker; 
+//LowPowerTicker eraseTicker; 
 
 // Fonction de rappel pour le premier bouton LVGL
 static void btn_event_cb1 (lv_event_t * e) {
