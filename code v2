@@ -1,0 +1,86 @@
+#include <mbed.h>
+#include <threadLvgl.h>
+#include "demos/lv_demos.h"
+#include <cstdio>
+
+ThreadLvgl threadLvgl(30);
+
+DigitalOut led1(D2); //Led blanche
+DigitalOut led2(D3); //Led rouge
+DigitalIn capteur(A0); //capteur
+DigitalOut ledcarte1(LED1); //pour faire du debug
+Timer t;
+int compteur ; 
+
+
+class Counter {
+public:
+    Counter(PinName pin) : _interrupt(pin) {        // create the InterruptIn on the pin specified to Counter
+        _interrupt.rise(callback(this, &Counter::increment)); // attach increment function of this counter instance 
+    }
+    
+    void increment() {   
+        _count++;
+        //chrono();
+    }
+   
+    void reset()
+    {
+        _count=0; 
+    }
+    int read() {
+        return _count;
+    }
+
+private:
+    InterruptIn _interrupt;
+    volatile int _count;
+};
+
+Counter counter (A0);
+
+// Fonction de rappel pour le premier bouton LVGL
+static void btn_event_cb1 (lv_event_t * e) {
+    ledcarte1 = 1;
+}
+// Fonction de rappel pour le deuxième bouton LVGL
+static void btn_event_cb2 (lv_event_t * e) {
+        ledcarte1 = 0; //pour tester le fonctionnement des boutons 
+        counter.reset();  // reset du compteur nb de Tours 
+}
+
+
+int main() {
+    led1 = 1;//led blanche allumé 
+    led2 = 0;//led rouge éteinte
+    
+    // Initialiser LVGL
+    threadLvgl.lock();
+      // Créer un premier bouton sur l'écran pour allumer la led embarquée
+    lv_obj_t * btn1 = lv_btn_create(lv_scr_act());
+    lv_obj_set_pos(btn1, 50, 50);
+    lv_obj_set_size(btn1, 120, 50);
+    lv_obj_add_event_cb(btn1, btn_event_cb1, LV_EVENT_CLICKED, NULL);
+    lv_obj_t * label1 = lv_label_create(btn1);
+    lv_label_set_text(label1, "Led on");
+    lv_obj_center(label1);
+     // Créer un deuxième bouton sur l'écran pour eteindr la led embarquée
+    lv_obj_t * btn2 = lv_btn_create(lv_scr_act());
+    lv_obj_set_pos(btn2, 50, 150);
+    lv_obj_set_size(btn2, 120, 50);
+    lv_obj_add_event_cb(btn2, btn_event_cb2, LV_EVENT_CLICKED, NULL);
+    lv_obj_t * label2 = lv_label_create(btn2);
+    lv_label_set_text(label2, "Led off");
+    lv_obj_center(label2);
+
+    lv_obj_t *label3 = lv_label_create(lv_scr_act());
+    threadLvgl.unlock();
+
+    while (1) {
+       
+            lv_label_set_text_fmt(label3, "nouveau tour : %d",  counter.read()); //pour compter le nombre de tours et l'afficher dans l'ecran 
+            //lv_label_set_text_fmt(label3, " temps entre tour %llu",  counter.timerRead()); //pour voir si on récupère une valeur de vitesse -- comenté car ça fonctionne pas
+
+        ThisThread::sleep_for(10ms);
+    }
+}
