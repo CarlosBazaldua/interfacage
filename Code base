@@ -1,0 +1,29 @@
+#include <mbed.h>
+#include <threadLvgl.h>
+#include "demos/lv_demos.h"
+#include <cstdio>
+
+DigitalOut led1(D2); //Led blanche 
+DigitalOut led2(D3); //Led rouge
+DigitalIn capteur(A0);
+
+int main() {
+    
+    
+
+    threadLvgl.lock();
+
+    lv_demo_widgets();
+
+    threadLvgl.unlock();
+
+    threadLvgl.lock(); 
+    functionTest();
+    threadLvgl.unlock();
+    while (1) {
+        // put your main code here, to run repeatedly:
+
+        ThisThread::sleep_for(10ms);
+    }
+}
+
