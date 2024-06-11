@@ -28,6 +28,28 @@ public:
         //chrono();
     }
    
+   /*void chrono(void) //fonction test 
+   {
+    int i = 0;
+    if (i == 0)
+    {
+        t.start();
+        i=1;
+        if( t== 1000)
+        {
+            i =0;
+            t.stop(); 
+            led2=1;
+        } 
+    }
+   }*/
+    /*
+    void increment()
+     {  t.stop();
+        _count++;
+        t.start(); 
+        float elapsed_time = t.elapsed_time().count() / 1000000.0f; 
+     }*/
     void reset()
     {
         _count=0; 
@@ -50,8 +72,8 @@ static void btn_event_cb2 (lv_event_t * e) {
 }
 
 int main() {
-    led1 = 1;//led blanche 
-    led2 = 0;//led rouge 
+    led1 = 1;//w
+    led2 = 0;//r
     
     // Initialiser LVGL
     threadLvgl.lock();
@@ -71,18 +93,15 @@ int main() {
     lv_obj_t * label2 = lv_label_create(btn2);
     lv_label_set_text(label2, "Led off");
     lv_obj_center(label2);
-
     lv_obj_t *label3 = lv_label_create(lv_scr_act());
     threadLvgl.unlock();
 
     while (1) {
        
-            lv_label_set_text_fmt(label3, "nouveau tour : %d",  counter.read()); //pour compter le nombre de tours et l'afficher dans l'ecran 
+            lv_label_set_text_fmt(label3, "nouveau tour : %d",  counter.read());
             //lv_label_set_text_fmt(label3, " temps entre tour %llu",  counter.timerRead());
 
         ThisThread::sleep_for(10ms);
     }
 }
-
-
 
