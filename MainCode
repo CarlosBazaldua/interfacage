@@ -3,27 +3,86 @@
 #include "demos/lv_demos.h"
 #include <cstdio>
 
-DigitalOut led1(D2); //Led blanche 
-DigitalOut led2(D3); //Led rouge
+ThreadLvgl threadLvgl(30);
+
+DigitalOut led1(D2); //W
+DigitalOut led2(D3); //R
 DigitalIn capteur(A0);
+DigitalOut ledcarte1(LED1);
+Timer t;
+int compteur ; 
+
+// Fonction de rappel pour le premier bouton LVGL
+static void btn_event_cb1 (lv_event_t * e) {
+    ledcarte1 = 1;
+}
+
+class Counter {
+public:
+    Counter(PinName pin) : _interrupt(pin) {        // create the InterruptIn on the pin specified to Counter
+        _interrupt.rise(callback(this, &Counter::increment)); // attach increment function of this counter instance 
+    }
+    
+    void increment() {   
+        _count++;
+        //chrono();
+    }
+   
+    void reset()
+    {
+        _count=0; 
+    }
+    int read() {
+        return _count;
+    }
+
+private:
+    InterruptIn _interrupt;
+    volatile int _count;
+};
+
+Counter counter (A0);
+
+// Fonction de rappel pour le deuxième bouton LVGL
+static void btn_event_cb2 (lv_event_t * e) {
+        ledcarte1 = 0;
+        counter.reset(); 
+}
 
 int main() {
+    led1 = 1;//led blanche 
+    led2 = 0;//led rouge 
     
-    
-
+    // Initialiser LVGL
     threadLvgl.lock();
+      // Créer un premier bouton sur l'écran pour allumer la led embarquée
+    lv_obj_t * btn1 = lv_btn_create(lv_scr_act());
+    lv_obj_set_pos(btn1, 50, 50);
+    lv_obj_set_size(btn1, 120, 50);
+    lv_obj_add_event_cb(btn1, btn_event_cb1, LV_EVENT_CLICKED, NULL);
+    lv_obj_t * label1 = lv_label_create(btn1);
+    lv_label_set_text(label1, "Led on");
+    lv_obj_center(label1);
+     // Créer un deuxième bouton sur l'écran pour eteindr la led embarquée
+    lv_obj_t * btn2 = lv_btn_create(lv_scr_act());
+    lv_obj_set_pos(btn2, 50, 150);
+    lv_obj_set_size(btn2, 120, 50);
+    lv_obj_add_event_cb(btn2, btn_event_cb2, LV_EVENT_CLICKED, NULL);
+    lv_obj_t * label2 = lv_label_create(btn2);
+    lv_label_set_text(label2, "Led off");
+    lv_obj_center(label2);
 
-    lv_demo_widgets();
-
+    lv_obj_t *label3 = lv_label_create(lv_scr_act());
     threadLvgl.unlock();
 
-    threadLvgl.lock(); 
-    functionTest();
-    threadLvgl.unlock();
     while (1) {
-        // put your main code here, to run repeatedly:
+       
+            lv_label_set_text_fmt(label3, "nouveau tour : %d",  counter.read()); //pour compter le nombre de tours et l'afficher dans l'ecran 
+            //lv_label_set_text_fmt(label3, " temps entre tour %llu",  counter.timerRead());
 
         ThisThread::sleep_for(10ms);
     }
 }
+
+
 
