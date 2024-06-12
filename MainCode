@@ -5,76 +5,81 @@
 
 ThreadLvgl threadLvgl(30);
 
-DigitalOut led1(D2); //R
-DigitalOut led2(D3); //W
-DigitalIn capteur(A0);
-DigitalOut ledcarte1(LED1);
-Timer t;
-int compteur ; 
-Ticker vitesseTicker; 
-//LowPowerTicker eraseTicker; 
-
-// Fonction de rappel pour le premier bouton LVGL
-static void btn_event_cb1 (lv_event_t * e) {
-    led2 = !led2;
-    
-}
+DigitalOut led1(D2); //sortie pour la led Rouge
+DigitalOut led2(D3); //Sortie pour la led blanche
+DigitalIn capteur(A0); //Entree pour le capteur 
+DigitalOut ledcarte1(LED1); //led utilisé pour faire du debug pendant le projet
+Timer t; //timer utilisé pour faire du debug pendant le projet
+Ticker vitesseTicker;  // Timer declaré pour calcul de vitesse
+//LowPowerTicker eraseTicker;    --> pour faire du debug aussi 
 
 
+
+//création d'une classe pour gérer les interruptions
 class Counter {
 public:
-    Counter(PinName pin) : _interrupt(pin) {        // create the InterruptIn on the pin specified to Counter
-        _interrupt.rise(callback(this, &Counter::increment)); // attach increment function of this counter instance 
+    Counter(PinName pin) : _interrupt(pin) {        // creation de l'interruption dans le pin A0
+        _interrupt.rise(callback(this, &Counter::increment)); // on attribue la méthode à éxécuter quand l'intérruption se produisse 
     }
-    
-    void increment() {   
-        _count++;
-        //chrono();
+
+//Méthode qui permet d'incrémenter le compteur 
+    void increment() {  
+        _count++; //on augmente le compteur
+        //chrono(); --> utilisé pour debug
     }
    
-
-    void reset()
+//Méthode qui permet de faire un reset du compteur
+    void reset()  
     {
         _count=0; 
     }
+//Méthode pour lire la valeur du compteur 
     int read() {
         return _count;
     }
 
 private:
-    InterruptIn _interrupt;
-    volatile int _count;
+    InterruptIn _interrupt; // déclarer l'interruption 
+    volatile int _count; //déclaration de la variable pour le compteur
 };
 
-Counter counter (A0);
+Counter counter (A0); // on attribue le pin à la classe
 
-// Fonction de rappel pour le deuxième bouton LVGL
+// Fonction à executer à chaque appui sur le bouton Feu arrière 
+static void btn_event_cb1 (lv_event_t * e) {
+    led2 = !led2; // on inverse l'état de la led
+}
+// Fonction à executer à chaque appui sur le bouton
 static void btn_event_cb2 (lv_event_t * e) {
-    led1 = !led1;
+    led1 = !led1; //inversion de l'état de la led
 }
 
-float vitesse;
-volatile bool flagVitesse = false;
-
+float vitesse; // declaration de la variable pour récuperer la vitesse
+// variable qui permet d'éxecuter l'affichage une fois que le calcul de la vitesse est terminé 
+volatile bool flagVitesse = false; 
+//fonction pour calculer la vitesse
 void calculVitesse() {
-    int nbtours = counter.read();
-    vitesse = 3.14*static_cast<float>(nbtours)*0.2 ;//distance au centre du capteur = 10 cm 
-    vitesse = vitesse *3.6;
+    int nbtours = counter.read(); // récuperation du nombre de tours pendant un s
+    vitesse = 3.14*static_cast<float>(nbtours)*0.2 ;//calcul de la vitesse avec distance au centre du capteur = 10 cm  
+    vitesse = vitesse *3.6; // conversion à des KM/h 
 
-    flagVitesse = true;
-    counter.reset();
+    flagVitesse = true; // fonction complèté 
+    counter.reset();  //reset du compteur pour récuperer le nombre de tours pendant 1 s 
 }
+
+//fonction pour faire le reset 
 void reset(){
-    counter.reset();
+    counter.reset(); // on accède à la méthode appartenant à la classe counter
 }
 
 int main() {
-    led1 = 0;//w
-    led2 = 0;//r
+    // on met les leds etteintes par défaut 
+    led1 = 0; 
+    led2 = 0;
     
-    // Initialiser LVGL
+// Initialiser LVGL
     threadLvgl.lock();
-      // Créer un premier bouton sur l'écran pour allumer la led embarquée
+// Créer un premier bouton sur l'écran pour allumer la lampe frontale 
     lv_obj_t * btn1 = lv_btn_create(lv_scr_act());
     lv_obj_set_pos(btn1, 50, 50);
     lv_obj_set_size(btn1, 120, 50);
@@ -82,7 +87,7 @@ int main() {
     lv_obj_t * label1 = lv_label_create(btn1);
     lv_label_set_text(label1, "Frontale");
     lv_obj_center(label1);
-     // Créer un deuxième bouton sur l'écran pour eteindr la led embarquée
+// Créer un deuxième bouton sur l'écran pour eteindre le feu arriere
     lv_obj_t * btn2 = lv_btn_create(lv_scr_act());
     lv_obj_set_pos(btn2, 50, 150);
     lv_obj_set_size(btn2, 120, 50);
@@ -90,20 +95,19 @@ int main() {
     lv_obj_t * label2 = lv_label_create(btn2);
     lv_label_set_text(label2, "Feu arriere");
     lv_obj_center(label2);
-
+// label pour afficher la vitesse
     lv_obj_t *label4 = lv_label_create(lv_scr_act());
     lv_obj_set_pos(label4, 50, 210);
-    
-    
     threadLvgl.unlock();
+// on attribue la fonction à executer une fois que le ticker arrive à 1s 
     vitesseTicker.attach(&calculVitesse, 1s);
     //eraseTicker.attach(&reset, 1100ms);
     
     while (1) {
-       if (flagVitesse) {
-            flagVitesse = false;
+       if (flagVitesse) { // dans le cas où on à fini de calculer la vitesse
+            flagVitesse = false; // on baisse le "drapeau pour la vitesse
             threadLvgl.lock();
-            lv_label_set_text_fmt(label4, "vitesse en km/h =  %f ",vitesse);
+            lv_label_set_text_fmt(label4, "vitesse en km/h =  %f ",vitesse); // on affiche la vitesse sur l'ecran
             threadLvgl.unlock();
        }
         ThisThread::sleep_for(10ms);
